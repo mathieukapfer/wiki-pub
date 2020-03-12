@@ -8,7 +8,9 @@
 # table manipulation
  - create
    ```
-   create table toto(id INTEGER PRIMARY KEY autoincrement, sampleValue interger, timestamp datetime DEFAULT current_timestamp);
+   create table toto(id INTEGER PRIMARY KEY autoincrement, 
+                     sampleValue interger, 
+                     timestamp datetime DEFAULT current_timestamp);
    ```
 
  - remove table
@@ -35,23 +37,23 @@ ALTER TABLE table ADD COLUMN column_definition;
    
 # change table content
  - insert
-```   
-INSERT INTO Students(StudentId, StudentName, DepartmentId, DateOfBirth)
+ ```   
+ INSERT INTO Students(StudentId, StudentName, DepartmentId, DateOfBirth)
               VALUES(11, 'Ahmad', 4, '1997-10-12');   
-
-INSERT INTO Students VALUES(12, 'Aly', 4, '1996-10-12');
-```   
+              
+ INSERT INTO Students VALUES(12, 'Aly', 4, '1996-10-12');
+ ```   
 
  -  delete
-```   
-DELETE FROM Students WHERE StudentId = 11 OR StudentId = 12;
-```   
+ ```   
+ DELETE FROM Students WHERE StudentId = 11 OR StudentId = 12;
+ ```   
 
  -  update
-```   
-UPDATE Students
-SET DepartmentId = 3
-WHERE StudentId = 6;
+ ```   
+ UPDATE Students
+ SET DepartmentId = 3
+ WHERE StudentId = 6;
 ```   
 
 # sql concept
