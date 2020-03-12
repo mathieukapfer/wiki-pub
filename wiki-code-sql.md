@@ -1,50 +1,66 @@
-sources :
-https://www.guru99.com/sqlite-query-insert-update.html
-https://www.guru99.com/sqlite-view-index-trigger.html
-https://www.sqlite.org/docs.html
+# sqlite3 helper
 
-# table
-## create
-create table toto(id INTEGER PRIMARY KEY autoincrement, sampleValue interger, timestamp datetime DEFAULT current_timestamp);
+# sources
+ - https://www.guru99.com/sqlite-query-insert-update.html
+ - https://www.guru99.com/sqlite-view-index-trigger.html
+ - https://www.sqlite.org/docs.html
 
-## remove
-drop table toto;
+# table manipulation
+ - create
+   ```
+   create table toto(id INTEGER PRIMARY KEY autoincrement, sampleValue interger, timestamp datetime DEFAULT current_timestamp);
+   ```
 
-# read
-SELECT * FROM Students;
+ - remove table
+   ```
+   drop table toto;
+   ```
 
-# display schema
-sqlite> .fullschema
-CREATE TABLE toto(id INTEGER PRIMARY KEY autoincrement, sampleID interger, timestamp datetime DEFAULT current_timestamp);
-/* No STAT tables available */
-sqlite>
+ - read content of table
+   ```
+   SELECT * FROM Students;
+   ```
+   
+ - display schema
+   ```   
+   sqlite> .fullschema
+   CREATE TABLE toto(id INTEGER PRIMARY KEY autoincrement, sampleID interger, timestamp datetime DEFAULT current_timestamp);
+   /* No STAT tables available */
+   ```
 
-# change table: insert, update, delete
-## insert
+ -  change table scheme
+ ```   
+ALTER TABLE table ADD COLUMN column_definition;
+   ```   
+   
+# change table content
+ - insert
+```   
 INSERT INTO Students(StudentId, StudentName, DepartmentId, DateOfBirth)
-              VALUES(11, 'Ahmad', 4, '1997-10-12');
+              VALUES(11, 'Ahmad', 4, '1997-10-12');   
 
 INSERT INTO Students VALUES(12, 'Aly', 4, '1996-10-12');
+```   
 
-## delete
+ -  delete
+```   
 DELETE FROM Students WHERE StudentId = 11 OR StudentId = 12;
+```   
 
-## update
-UPDATE Studentsa
+ -  update
+```   
+UPDATE Students
 SET DepartmentId = 3
 WHERE StudentId = 6;
-
-# change table scheme
-ALTER TABLE table ADD COLUMN column_definition;
+```   
 
 # sql concept
-## primray key
-
-## foreign ley
-https://www.sqlite.org/foreignkeys.html
-
-## prama (meta data)
+ - primray key
+ - foreign ley: https://www.sqlite.org/foreignkeys.html
+ - prama (meta data)
+ ```   
  PRAGMA user_version;
+ ```   
 
 
 # tips
@@ -54,7 +70,6 @@ https://www.sqlite.org/lang_datefunc.html
 
 "timestamp" DATETIME DEFAULT CURRENT_TIMESTAMP
 "timestamp" DATE DEFAULT (datetime('now','localtime')),
-
 
 ## auto update timestamps
 
