@@ -67,13 +67,14 @@ WHERE StudentId = 6;
 
 ## timestamp VS datetime
 https://www.sqlite.org/lang_datefunc.html
-
+```   
 "timestamp" DATETIME DEFAULT CURRENT_TIMESTAMP
 "timestamp" DATE DEFAULT (datetime('now','localtime')),
+```   
 
 ## auto update timestamps
-
-### with triggerrem
+### with trigger
+```   
 CREATE TRIGGER your_table_trig AFTER UPDATE ON your_table
  BEGIN
   update your_table SET updated_on = datetime('now') WHERE user_id = NEW.user_id;
@@ -84,17 +85,18 @@ CREATE TABLE referrals(
     source TEXT NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-
+```   
 ### when create the table
+```   
 CREATE TABLE whatever(
      ....
      timestamp DATE DEFAULT (datetime('now','localtime')),
      ...
 );
-
+```   
 ## auto increment
 Work only for primary key in sqlite3
-
+```   
 CREATE TABLE table_name(
    column1 INTEGER PRIMARY KEY AUTOINCREMENT,
    column2 datatype,
@@ -102,3 +104,4 @@ CREATE TABLE table_name(
    .....
    columnN datatype,
 );
+```   
