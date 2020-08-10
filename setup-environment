@@ -1,0 +1,205 @@
+#!/bin/bash
+# -*- mode: shell-script; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+#
+# Copyright (C) 2012, 2013, 2016 O.S. Systems Software LTDA.
+# Authored-by:  Otavio Salvador <otavio@ossystems.com.br>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+CWD=`pwd`
+PROGNAME="setup-environment"
+PACKAGE_CLASSES="package_deb"
+
+usage()
+{
+    echo -e "
+Usage: MACHINE=<machine> DISTRO=<distro> source $PROGNAME <build-dir>
+Usage:                                   source $PROGNAME <build-dir>
+    <machine>    machine name
+    <distro>     distro name
+    <build-dir>  build directory
+The first usage is for creating a new build directory. In this case, the
+script creates the build directory <build-dir>, configures it for the
+specified <machine> and <distro>, and prepares the calling shell for running
+bitbake on the build directory.
+The second usage is for using an existing build directory. In this case,
+the script prepares the calling shell for running bitbake on the build
+directory <build-dir>. The build directory configuration is unchanged.
+"
+    \ls sources/*/conf/machine/*.conf > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        echo -e "
+Supported machines: `echo; ls sources/meta-mytarget/conf/machine/*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
+"
+    fi
+    \ls sources/*/conf/distro/*.conf > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo -e "
+Supported distros: `echo; ls sources/*/conf/distro/*.conf \
+| sed s/\.conf//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%"`
+"
+    fi
+echo -e "
+Examples:
+- To create a new Yocto build directory:
+  $ MACHINE=rzn1-mytarget-ep1 DISTRO=dip source $PROGNAME build
+- To use an existing Yocto build directory:
+  $ source $PROGNAME build
+"
+}
+
+clean_up()
+{
+   unset CWD TEMPLATES SHORTOPTS LONGOPTS ARGS PROGNAME
+   unset generated_config
+   unset OEROOT
+}
+
+# Get command line options
+SHORTOPTS="h s"
+LONGOPTS="help submodules"
+
+ARGS=$(getopt --options "$SHORTOPTS"  \
+  --longoptions "$LONGOPTS" --name $PROGNAME -- "$@" )
+# Print the usage menu if invalid options are specified
+if [ $? != 0 -o $# -lt 1 ]; then
+   usage && clean_up
+   return 1 2>/dev/null || exit 1
+fi
+
+eval set -- "$ARGS"
+while true;
+do
+    case $1 in
+        -h|--help)
+           usage
+           clean_up
+           return 0 2>/dev/null || exit 0
+           ;;
+        -s|--submodules)
+           set -x
+           D=`dirname $0`
+
+           if [[ "${SUBMODULES}" == "all" ]]; then
+             SUBMODULES=$(awk "/path/ { print \"${D}/\" \$3 }" ${D}/.gitmodules)
+           fi
+           if [[ -z "${SUBMODULES}" ]]; then
+             SUBMODULES="$D/sources/meta-backports $D/sources/meta-dip-base"
+           fi
+
+           git submodule update --remote ${SUBMODULES}
+           [[ $_ != $0 ]] && return || exit 0
+           ;;
+        --)
+           shift
+           break
+           ;;
+    esac
+done
+
+if [ "$(whoami)" = "root" ]; then
+    echo "ERROR: do not use the BSP as root. Exiting..."
+    return 1
+fi
+
+if [ ! -e $1/conf/local.conf ]; then
+    build_dir_setup_enabled="true"
+else
+    build_dir_setup_enabled="false"
+fi
+
+if [ "$build_dir_setup_enabled" = "true" ] && [ -z "$MACHINE" ]; then
+    usage
+    echo -e "ERROR: You must set MACHINE when creating a new build directory."
+    clean_up
+    return 1
+fi
+
+if [ "$build_dir_setup_enabled" = "true" ] && [ -z "$DISTRO" ]; then
+    usage
+    echo -e "ERROR: You must set DISTRO when creating a new build directory."
+    clean_up
+    return 1
+fi
+
+OEROOT=$PWD/sources/poky
+if [ -e $PWD/sources/oe-core ]; then
+    OEROOT=$PWD/sources/oe-core
+fi
+
+. $OEROOT/oe-init-build-env $CWD/$1 > /dev/null
+
+# If conf/local.conf is not generated, no need to go further
+if [ ! -e conf/local.conf ]; then
+    clean_up && return 1
+fi
+
+# Clean up PATH, because if it includes tokens to current directories somehow,
+# wrong binaries can be used instead of the expected ones during task execution
+export PATH="`echo $PATH | sed 's/\(:.\|:\)*:/:/g;s/^.\?://;s/:.\?$//'`"
+
+generated_config=
+if [ "$build_dir_setup_enabled" = "true" ]; then
+    TEMPLATES=$CWD/conf
+
+    # Get the custom configuration
+    \cp $TEMPLATES/local.conf.sample conf/
+    \cp $TEMPLATES/bblayers.conf.sample conf/
+
+    if [ -e conf/local.conf.sample ]; then
+          \mv conf/local.conf.sample conf/local.conf
+    fi
+
+    if [ -e conf/bblayers.conf.sample ]; then
+          \mv conf/bblayers.conf.sample conf/bblayers.conf
+    fi
+
+    # Change settings according to the environment
+    \sed -e "s,MACHINE ??=.*,MACHINE ??= '$MACHINE',g" \
+        -e "s,DISTRO ?=.*,DISTRO ?= '$DISTRO',g" \
+        -e "s,PACKAGE_CLASSES ?=.*,PACKAGE_CLASSES ?= '$PACKAGE_CLASSES',g" \
+        -i conf/local.conf
+
+    for s in $HOME/.oe $HOME/.yocto; do
+        if [ -e $s/site.conf ]; then
+            echo "Linking $s/site.conf to conf/site.conf"
+            \ln -s $s/site.conf conf
+        fi
+    done
+
+    generated_config=1
+fi
+
+
+\cat <<EOF
+Welcome to my project distribution
+You can now run 'bitbake <target>'
+Common targets are:
+`echo; ls ../sources/meta-mytarget/recipes-img/images/*.bb \
+| sed s/\.bb//g | sed -r 's/^.+\///' | xargs -I% echo -e "\t%";`
+EOF
+
+if [ -n "$generated_config" ]; then
+    \cat <<EOF
+Your build environment has been configured with:
+    MACHINE=$MACHINE
+    DISTRO=$DISTRO
+EOF
+else
+    echo "Your configuration files at $1 have not been touched."
+fi
+
+clean_up
